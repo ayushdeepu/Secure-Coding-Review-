@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Coding Review — Mini Notes (Flask)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1B2B;
+    --panel:#16263B;
+    --panel-2:#1C3049;
+    --rule:#2A3F58;
+    --rule-soft:#22344A;
+    --paper:#ECE6D8;
+    --paper-dim:#B9B2A0;
+    --paper-soft:#D8D0BC;
+    --text-bright:#F3EFE4;
+    --text-dim:#9FB0C2;
+    --redline:#D2553B;
+    --redline-deep:#A8401F;
+    --amber:#D98A3D;
+    --gold:#D9B23D;
+    --sage:#5E9B73;
+    --sage-deep:#3D7551;
+    --low:#7C90A8;
+    --crit-bg:#2A1813;
+    --high-bg:#2A2014;
+    --med-bg:#2A2614;
+    --low-bg:#1B2530;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text-bright);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px 80px;}
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    border-bottom:1px solid var(--rule);
+    padding:56px 0 36px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--redline);
+    margin:0 0 18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow .case-no{color:var(--text-dim);}
+  h1.title{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:46px;
+    line-height:1.08;
+    margin:0 0 16px;
+    color:var(--text-bright);
+    letter-spacing:-.01em;
+  }
+  .dek{
+    font-size:16px;
+    color:var(--text-dim);
+    max-width:640px;
+    margin:0 0 28px;
+  }
+  .meta-strip{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    margin-top:8px;
+  }
+  .meta-cell{
+    background:var(--panel);
+    padding:14px 16px;
+  }
+  .meta-cell .k{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0 0 6px;
+  }
+  .meta-cell .v{
+    font-size:15px;
+    font-weight:500;
+    color:var(--text-bright);
+    margin:0;
+  }
+
+  /* ---------- RISK SUMMARY ---------- */
+  section.summary{
+    padding:40px 0 8px;
+    border-bottom:1px solid var(--rule);
+    display:grid;
+    grid-template-columns:220px 1fr;
+    gap:44px;
+    align-items:center;
+  }
+  .donut-wrap{display:flex; flex-direction:column; align-items:center;}
+  .donut-total{
+    font-family:'Fraunces', serif;
+    font-size:13px;
+    fill:var(--text-dim);
+  }
+  .donut-num{
+    font-family:'Fraunces', serif;
+    font-size:34px;
+    fill:var(--text-bright);
+  }
+  .severity-rows{display:flex; flex-direction:column; gap:10px;}
+  .sev-row{
+    display:grid;
+    grid-template-columns:14px 84px 1fr 40px;
+    align-items:center;
+    gap:12px;
+  }
+  .sev-dot{width:10px;height:10px;border-radius:2px;}
+  .sev-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  .sev-bar-track{height:7px; background:var(--panel-2); border-radius:0;}
+  .sev-bar-fill{height:7px;}
+  .sev-count{font-size:13px; text-align:right; color:var(--text-bright); font-weight:500;}
+
+  /* ---------- METHODOLOGY ---------- */
+  section.method{
+    padding:32px 0 8px;
+    border-bottom:1px solid var(--rule);
+  }
+  .method h2, section.findings h2, section.recs h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--text-dim);
+    margin:0 0 18px;
+  }
+  .method-list{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px 30px;
+    padding:0;
+    margin:0 0 24px;
+    list-style:none;
+  }
+  .method-list li{
+    font-size:14.5px;
+    color:var(--text-dim);
+    padding-left:18px;
+    position:relative;
+  }
+  .method-list li::before{
+    content:"—";
+    position:absolute;
+    left:0;
+    color:var(--redline);
+  }
+  .method-list b{color:var(--text-bright); font-weight:500;}
+
+  /* ---------- FILTER BAR ---------- */
+  .filter-bar{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    padding:28px 0 0;
+    margin-bottom:8px;
+  }
+  .chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:.03em;
+    padding:8px 14px;
+    border:1px solid var(--rule);
+    background:var(--panel);
+    color:var(--text-dim);
+    cursor:pointer;
+    user-select:none;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .chip:hover{border-color:var(--paper-dim);}
+  .chip.active{
+    background:var(--paper);
+    color:var(--ink);
+    border-color:var(--paper);
+  }
+  .chip .n{opacity:.7; margin-left:6px;}
+
+  /* ---------- FINDINGS ---------- */
+  section.findings{padding:36px 0 8px;}
+  .finding{
+    border:1px solid var(--rule);
+    margin-bottom:22px;
+    background:var(--panel);
+    overflow:hidden;
+    transition:opacity .2s, transform .2s;
+  }
+  .finding.hidden-by-filter{display:none;}
+
+  .finding-head{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    padding:18px 20px;
+    border-bottom:1px solid var(--rule);
+  }
+  .stamp{
+    flex:0 0 auto;
+    width:38px;height:38px;
+    border:1.5px solid currentColor;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces', serif;
+    font-size:15px;
+    transform:rotate(-6deg);
+  }
+  .finding-title-block{flex:1;}
+  .finding-title{
+    font-family:'Fraunces', serif;
+    font-size:19px;
+    font-weight:500;
+    margin:0 0 6px;
+    color:var(--text-bright);
+  }
+  .finding-tags{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.05em;
+    padding:3px 8px;
+    border-radius:2px;
+    text-transform:uppercase;
+  }
+  .tag.cwe{
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--text-dim);
+  }
+  .tag.loc{
+    background:transparent;
+    color:var(--text-dim);
+    border:1px solid var(--rule);
+  }
+
+  .finding-body{padding:0;}
+  .code-block{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    background:#0A1420;
+    margin:0;
+    overflow-x:auto;
+  }
+  .code-block table{border-collapse:collapse; width:100%;}
+  .code-block td{padding:1px 0; vertical-align:top; white-space:pre;}
+  .code-block .ln{
+    width:42px;
+    text-align:right;
+    padding-right:14px;
+    color:#3E5774;
+    user-select:none;
+  }
+  .code-block .code{padding-right:20px; color:#C9D6E3;}
+  .code-block tr.flag .ln{color:var(--redline); font-weight:600;}
+  .code-block tr.flag .code{
+    background:var(--crit-bg);
+    border-left:3px solid var(--redline);
+    color:var(--text-bright);
+  }
+  .code-block tr.flag.sev-high .code{background:var(--high-bg); border-left-color:var(--amber);}
+  .code-block tr.flag.sev-medium .code{background:var(--med-bg); border-left-color:var(--gold);}
+  .code-block tr td.code{padding-left:14px;}
+  .code-pad{padding:14px 0;}
+
+  .annotation{
+    padding:18px 20px 20px;
+    border-top:1px solid var(--rule);
+  }
+  .annotation p{margin:0 0 12px; font-size:14.5px; color:var(--paper-dim);}
+  .annotation p.lead{color:var(--text-bright);}
+  .annotation .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0 0 6px;
+  }
+  .fix-toggle{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--sage);
+    background:none;
+    border:1px solid var(--sage-deep);
+    padding:8px 14px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .fix-toggle:hover{background:rgba(95,155,115,.12);}
+  .fix-panel{
+    display:none;
+    margin-top:14px;
+  }
+  .fix-panel.open{display:block;}
+  .fix-panel .code-block tr .code{background:transparent; border-left:3px solid var(--sage);}
+  .fix-panel .code-block tr .ln{color:var(--sage-deep);}
+
+  /* severity left rail */
+  .finding[data-severity="critical"]{border-left:3px solid var(--redline);}
+  .finding[data-severity="high"]{border-left:3px solid var(--amber);}
+  .finding[data-severity="medium"]{border-left:3px solid var(--gold);}
+  .finding[data-severity="low"]{border-left:3px solid var(--low);}
+  .finding[data-severity="critical"] .stamp{color:var(--redline);}
+  .finding[data-severity="high"] .stamp{color:var(--amber);}
+  .finding[data-severity="medium"] .stamp{color:var(--gold);}
+  .finding[data-severity="low"] .stamp{color:var(--low);}
+  .tag.sev-critical{background:var(--crit-bg); color:var(--redline); border:1px solid var(--redline-deep);}
+  .tag.sev-high{background:var(--high-bg); color:var(--amber); border:1px solid var(--amber);}
+  .tag.sev-medium{background:var(--med-bg); color:var(--gold); border:1px solid var(--gold);}
+  .tag.sev-low{background:var(--low-bg); color:var(--low); border:1px solid var(--low);}
+
+  /* ---------- RECOMMENDATIONS ---------- */
+  section.recs{padding:36px 0 60px;}
+  .rec-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+  }
+  .rec-card{
+    background:var(--panel);
+    padding:18px 20px;
+  }
+  .rec-card .rec-no{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--redline);
+    letter-spacing:.06em;
+  }
+  .rec-card h3{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    font-weight:500;
+    margin:6px 0 8px;
+    color:var(--text-bright);
+  }
+  .rec-card p{font-size:13.5px; color:var(--text-dim); margin:0;}
+
+  footer.colophon{
+    border-top:1px solid var(--rule);
+    padding:28px 0 0;
+    font-size:12.5px;
+    color:var(--text-dim);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  footer.colophon b{color:var(--paper-dim); font-weight:500;}
+
+  @media (max-width:720px){
+    .meta-strip{grid-template-columns:1fr 1fr;}
+    section.summary{grid-template-columns:1fr;}
+    .method-list{grid-template-columns:1fr;}
+    .rec-grid{grid-template-columns:1fr;}
+    h1.title{font-size:32px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">Internship Task 3 — Secure Coding Review <span class="case-no">/ Case No. SCR-2026-001</span></p>
+    <h1 class="title">Audit of "Mini Notes"<br>a Python &amp; Flask web application</h1>
+    <p class="dek">A manual line-by-line review combined with automated static analysis (Bandit), covering authentication, data storage, and user input handling across a single-file Flask service.</p>
+
+    <div class="meta-strip">
+      <div class="meta-cell"><p class="k">Language</p><p class="v">Python 3.12</p></div>
+      <div class="meta-cell"><p class="k">Framework</p><p class="v">Flask</p></div>
+      <div class="meta-cell"><p class="k">Lines reviewed</p><p class="v">68</p></div>
+      <div class="meta-cell"><p class="k">Findings</p><p class="v" id="meta-total">9</p></div>
+    </div>
+  </header>
+
+  <section class="summary">
+    <div class="donut-wrap">
+      <svg width="200" height="200" viewBox="0 0 200 200" id="donut"></svg>
+    </div>
+    <div class="severity-rows" id="sev-rows"></div>
+  </section>
+
+  <section class="method">
+    <h2>Methodology</h2>
+    <ul class="method-list">
+      <li><b>Manual inspection</b> of every route handler, line by line, tracing untrusted input from request to sink.</li>
+      <li><b>Static analysis</b> with Bandit (v1.9), a Python-specific security linter, cross-checked against manual findings.</li>
+      <li><b>Threat framing</b> using the OWASP Top 10 and MITRE CWE identifiers for each issue.</li>
+      <li><b>Remediation drafting</b> — a corrected snippet was written and re-reviewed for every finding below.</li>
+    </ul>
+  </section>
+
+  <div class="filter-bar" id="filter-bar"></div>
+
+  <section class="findings" id="findings-section">
+    <h2>Findings</h2>
+    <div id="findings-list"></div>
+  </section>
+
+  <section class="recs">
+    <h2>General best practices</h2>
+    <div class="rec-grid">
+      <div class="rec-card">
+        <p class="rec-no">01</p>
+        <h3>Never build queries with string formatting</h3>
+        <p>Use parameterized queries or an ORM for every database call — no exceptions, even for "trusted" admin routes.</p>
+      </div>
+      <div class="rec-card">
+        <p class="rec-no">02</p>
+        <h3>Treat all request data as hostile</h3>
+        <p>Validate type, length, and format of every form field, query param, and header before it touches business logic.</p>
+      </div>
+      <div class="rec-card">
+        <p class="rec-no">03</p>
+        <h3>Keep secrets out of source control</h3>
+        <p>Load keys and credentials from environment variables or a secrets manager; rotate anything that was ever committed.</p>
+      </div>
+      <div class="rec-card">
+        <p class="rec-no">04</p>
+        <h3>Hash passwords with a slow, salted algorithm</h3>
+        <p>Use bcrypt, scrypt, or Argon2 — never MD5 or SHA-family alone — via a maintained library such as Werkzeug's security helpers.</p>
+      </div>
+      <div class="rec-card">
+        <p class="rec-no">05</p>
+        <h3>Let the template engine escape output</h3>
+        <p>Use Jinja2's autoescaping (render_template, not render_template_string with manual string concatenation) to prevent XSS.</p>
+      </div>
+      <div class="rec-card">
+        <p class="rec-no">06</p>
+        <h3>Run static analysis on every commit</h3>
+        <p>Wire Bandit (or similar) into CI so a vulnerable pattern fails the build before it reaches a reviewer.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <span>Reviewed by: <b>Internship Candidate</b></span>
+    <span>Tooling: <b>Bandit 1.9</b> + manual inspection</span>
+    <span>Status: <b>Findings open — remediation drafted</b></span>
+  </footer>
+
+</div>
+
+<script>
+const FINDINGS = [
+  {
+    id: 1, severity: "critical", title: "Hardcoded secret key in source", cwe: "CWE-798", loc: "app.py:17",
+    code: [
+      [15,"DB_PATH = \"notes.db\""],
+      [16,""],
+      [17,"app.secret_key = \"super-secret-key-123\"",true],
+      [18,""],
+      [19,"def get_db():"]
+    ],
+    flagLine: 17,
+    explain: "The Flask session-signing key is written directly into the source file. Anyone with read access to the repository — including its full git history — can forge session cookies and impersonate any user.",
+    fix: [
+      [15,"import os"],
+      [16,""],
+      [17,"app.secret_key = os.environ[\"SECRET_KEY\"]  # set in deployment env, never committed",true],
+      [18,""],
+      [19,"def get_db():"]
+    ]
+  },
+  {
+    id: 2, severity: "critical", title: "SQL injection in login (string formatting)", cwe: "CWE-89", loc: "app.py:40",
+    code: [
+      [38,"    conn = get_db()"],
+      [39,"    query = \"SELECT * FROM users WHERE username = '%s' AND password = '%s'\" % ("],
+      [40,"        username, password)",true],
+      [41,"    user = conn.execute(query).fetchone()"]
+    ],
+    flagLine: 40,
+    explain: "Username and password are interpolated directly into the SQL string. A login of <code>' OR '1'='1</code> bypasses authentication entirely, and worse payloads can read or modify the whole database.",
+    fix: [
+      [38,"    conn = get_db()"],
+      [39,"    query = \"SELECT * FROM users WHERE username = ? AND password = ?\""],
+      [40,"    user = conn.execute(query, (username, password)).fetchone()",true],
+      [41,"    # placeholders bind values safely — the driver never treats them as SQL"]
+    ]
+  },
+  {
+    id: 3, severity: "high", title: "Weak, unsalted password hashing (MD5)", cwe: "CWE-327", loc: "app.py:57",
+    code: [
+      [55,"    username = request.form[\"username\"]"],
+      [56,"    password = request.form[\"password\"]"],
+      [57,"    hashed = hashlib.md5(password.encode()).hexdigest()",true],
+      [58,""]
+    ],
+    flagLine: 57,
+    explain: "MD5 is fast and unsalted, making stored hashes trivial to crack with rainbow tables or commodity GPUs. A single leaked users table compromises every account, including reused passwords elsewhere.",
+    fix: [
+      [55,"    from werkzeug.security import generate_password_hash"],
+      [56,""],
+      [57,"    hashed = generate_password_hash(password)  # salted scrypt/bcrypt under the hood",true],
+      [58,""]
+    ]
+  },
+  {
+    id: 4, severity: "critical", title: "SQL injection in note lookup (f-string)", cwe: "CWE-89", loc: "app.py:71",
+    code: [
+      [69,"def view_note(note_id):"],
+      [70,"    conn = get_db()"],
+      [71,"    row = conn.execute(f\"SELECT content FROM notes WHERE id = {note_id}\").fetchone()",true],
+      [72,"    content = row[0] if row else \"Not found\""]
+    ],
+    flagLine: 71,
+    explain: "The note_id path segment is dropped straight into the query. A request like <code>/notes/0 UNION SELECT password FROM users--</code> can exfiltrate data far outside the notes table.",
+    fix: [
+      [69,"def view_note(note_id):"],
+      [70,"    conn = get_db()"],
+      [71,"    row = conn.execute(\"SELECT content FROM notes WHERE id = ?\", (note_id,)).fetchone()",true],
+      [72,"    content = row[0] if row else \"Not found\""]
+    ]
+  },
+  {
+    id: 5, severity: "high", title: "Reflected XSS in note rendering", cwe: "CWE-79", loc: "app.py:78",
+    code: [
+      [76,"    # without escaping"],
+      [77,"    template = \"<h1>Note</h1><p>\" + content + \"</p>\"",true],
+      [78,"    return render_template_string(template)"]
+    ],
+    flagLine: 77,
+    explain: "Note content is concatenated straight into raw HTML with no escaping. A note containing <code>&lt;script&gt;</code> executes in every browser that views it — a classic stored/reflected XSS chain.",
+    fix: [
+      [76,"    # Jinja2 autoescapes {{ }} expressions by default"],
+      [77,"    return render_template(\"note.html\", content=content)",true],
+      [78,"    # never build HTML with string concatenation"]
+    ]
+  },
+  {
+    id: 6, severity: "high", title: "Path traversal in file export", cwe: "CWE-22", loc: "app.py:86",
+    code: [
+      [84,"    filename = request.args.get(\"file\", \"notes.txt\")"],
+      [85,"    filepath = os.path.join(\"/var/data/exports\", filename)",true],
+      [86,"    return send_file(filepath)"]
+    ],
+    flagLine: 85,
+    explain: "filename is never validated. A request such as <code>/export?file=../../../../etc/passwd</code> walks out of the intended directory and reads arbitrary files the server process can access.",
+    fix: [
+      [84,"    from werkzeug.utils import secure_filename"],
+      [85,"    filename = secure_filename(request.args.get(\"file\", \"notes.txt\"))",true],
+      [86,"    filepath = os.path.join(\"/var/data/exports\", filename)  # now confined to the dir"]
+    ]
+  },
+  {
+    id: 7, severity: "critical", title: "OS command injection in /ping", cwe: "CWE-78", loc: "app.py:94",
+    code: [
+      [92,"    host = request.args.get(\"host\", \"127.0.0.1\")"],
+      [93,"    result = subprocess.run(f\"ping -c 1 {host}\", shell=True, capture_output=True)",true],
+      [94,"    return result.stdout"]
+    ],
+    flagLine: 93,
+    explain: "host is interpolated into a shell command with <code>shell=True</code>. A value like <code>127.0.0.1; rm -rf /</code> runs arbitrary shell commands on the host with the web server's privileges.",
+    fix: [
+      [92,"    import re"],
+      [93,"    host = request.args.get(\"host\", \"127.0.0.1\")"],
+      [94,"    if not re.fullmatch(r\"[a-zA-Z0-9.\\-]{1,253}\", host): abort(400)",true],
+      [95,"    result = subprocess.run([\"ping\",\"-c\",\"1\",host], shell=False, capture_output=True)"]
+    ]
+  },
+  {
+    id: 8, severity: "medium", title: "Sensitive environment data exposed", cwe: "CWE-209", loc: "app.py:101",
+    code: [
+      [99,"def debug_info():"],
+      [100,"    return {\"env\": dict(os.environ)}",true],
+      [101,""]
+    ],
+    flagLine: 100,
+    explain: "This endpoint dumps every environment variable — frequently including API keys, database URLs, and cloud credentials — to any unauthenticated visitor.",
+    fix: [
+      [99,"# Remove this endpoint entirely from production builds."],
+      [100,"# If diagnostics are required, gate behind authentication and",true],
+      [101,"# return only non-sensitive, explicitly allow-listed fields."]
+    ]
+  },
+  {
+    id: 9, severity: "medium", title: "Debug mode enabled, bound to all interfaces", cwe: "CWE-489", loc: "app.py:106",
+    code: [
+      [104,"if __name__ == \"__main__\":"],
+      [105,"    app.run(host=\"0.0.0.0\", port=5000, debug=True)",true],
+      [106,""]
+    ],
+    flagLine: 105,
+    explain: "debug=True exposes the interactive Werkzeug debugger, which allows arbitrary code execution from the browser if an exception is triggered. Combined with host=\"0.0.0.0\", it's reachable from the whole network.",
+    fix: [
+      [104,"if __name__ == \"__main__\":"],
+      [105,"    app.run(host=\"127.0.0.1\", port=5000, debug=False)  # use a real WSGI server in prod",true],
+      [106,""]
+    ]
+  }
+];
+
+const SEV_META = {
+  critical: { label: "Critical", color: "#D2553B" },
+  high:     { label: "High",     color: "#D98A3D" },
+  medium:   { label: "Medium",   color: "#D9B23D" },
+  low:      { label: "Low",      color: "#7C90A8" }
+};
+const SEV_ORDER = ["critical","high","medium","low"];
+
+function renderDonut(){
+  const counts = {critical:0,high:0,medium:0,low:0};
+  FINDINGS.forEach(f => counts[f.severity]++);
+  const total = FINDINGS.length;
+  const cx=100, cy=100, r=78, sw=22;
+  const circ = 2*Math.PI*r;
+  let offset = 0;
+  let arcs = "";
+  SEV_ORDER.forEach(sev=>{
+    const n = counts[sev];
+    if(!n) return;
+    const frac = n/total;
+    const dash = frac*circ;
+    arcs += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${SEV_META[sev].color}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset += dash;
+  });
+  document.getElementById("donut").innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#22344A" stroke-width="${sw}"/>
+    ${arcs}
+    <text x="${cx}" y="${cy-6}" text-anchor="middle" class="donut-num">${total}</text>
+    <text x="${cx}" y="${cy+16}" text-anchor="middle" class="donut-total">findings</text>
+  `;
+
+  const rows = document.getElementById("sev-rows");
+  rows.innerHTML = SEV_ORDER.map(sev=>{
+    const n = counts[sev];
+    const pct = total ? Math.round((n/total)*100) : 0;
+    return `<div class="sev-row">
+      <span class="sev-dot" style="background:${SEV_META[sev].color}"></span>
+      <span class="sev-label">${SEV_META[sev].label}</span>
+      <span class="sev-bar-track"><span class="sev-bar-fill" style="width:${pct}%;background:${SEV_META[sev].color}"></span></span>
+      <span class="sev-count">${n}</span>
+    </div>`;
+  }).join("");
+}
+
+function codeTable(rows, flagSev){
+  const trs = rows.map(([ln, text, flagged])=>{
+    const cls = flagged ? `flag sev-${flagSev}` : "";
+    const escaped = text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return `<tr class="${cls}"><td class="ln">${ln}</td><td class="code">${escaped || "&nbsp;"}</td></tr>`;
+  }).join("");
+  return `<div class="code-block"><table>${trs}</table></div>`;
+}
+
+function renderFindings(){
+  const list = document.getElementById("findings-list");
+  list.innerHTML = FINDINGS.map(f=>{
+    const sevMeta = SEV_META[f.severity];
+    return `
+    <article class="finding" data-severity="${f.severity}" id="finding-${f.id}">
+      <div class="finding-head">
+        <div class="stamp">${String(f.id).padStart(2,"0")}</div>
+        <div class="finding-title-block">
+          <p class="finding-title">${f.title}</p>
+          <div class="finding-tags">
+            <span class="tag sev-${f.severity}">${sevMeta.label}</span>
+            <span class="tag cwe">${f.cwe}</span>
+            <span class="tag loc">${f.loc}</span>
+          </div>
+        </div>
+      </div>
+      <div class="finding-body">
+        ${codeTable(f.code, f.severity)}
+        <div class="annotation">
+          <p class="label">What's wrong</p>
+          <p class="lead">${f.explain}</p>
+          <button class="fix-toggle" onclick="toggleFix(${f.id})" id="fix-btn-${f.id}">Show recommended fix &darr;</button>
+          <div class="fix-panel" id="fix-panel-${f.id}">
+            <p class="label" style="margin-top:14px;">Remediated code</p>
+            ${codeTable(f.fix, "")}
+          </div>
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function toggleFix(id){
+  const panel = document.getElementById(`fix-panel-${id}`);
+  const btn = document.getElementById(`fix-btn-${id}`);
+  const open = panel.classList.toggle("open");
+  btn.textContent = open ? "Hide recommended fix ↑" : "Show recommended fix ↓";
+}
+
+function renderFilterBar(){
+  const counts = {all: FINDINGS.length, critical:0, high:0, medium:0, low:0};
+  FINDINGS.forEach(f=>counts[f.severity]++);
+  const bar = document.getElementById("filter-bar");
+  const chips = [{key:"all", label:"All"}].concat(
+    SEV_ORDER.map(s=>({key:s, label:SEV_META[s].label}))
+  );
+  bar.innerHTML = chips.map(c=>{
+    const n = counts[c.key];
+    return `<button class="chip ${c.key==='all'?'active':''}" data-filter="${c.key}" onclick="applyFilter('${c.key}', this)">${c.label}<span class="n">${n}</span></button>`;
+  }).join("");
+}
+
+function applyFilter(key, btn){
+  document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".finding").forEach(card=>{
+    const show = key === "all" || card.dataset.severity === key;
+    card.classList.toggle("hidden-by-filter", !show);
+  });
+}
+
+renderDonut();
+renderFindings();
+renderFilterBar();
+document.getElementById("meta-total").textContent = FINDINGS.length;
+</script>
+</body>
+</html>
